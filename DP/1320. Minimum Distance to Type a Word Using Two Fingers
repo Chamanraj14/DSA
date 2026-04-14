@@ -1,0 +1,123 @@
+1320. Minimum Distance to Type a Word Using Two Fingers
+
+https://assets.leetcode.com/uploads/2020/01/02/leetcode_keyboard.png
+
+You have a keyboard layout as shown above in the X-Y plane, where each English uppercase letter is located at some coordinate.
+
+For example, the letter 'A' is located at coordinate (0, 0), the letter 'B' is located at coordinate (0, 1), the letter 'P' is located at coordinate (2, 3) and the letter 'Z' is located at coordinate (4, 1).
+Given the string word, return the minimum total distance to type such string using only two fingers.
+
+The distance between coordinates (x1, y1) and (x2, y2) is |x1 - x2| + |y1 - y2|.
+
+Note that the initial positions of your two fingers are considered free so do not count towards your total distance, also your two fingers do not have to start at the first letter or the first two letters.
+
+
+Example 1:
+
+Input: word = "CAKE"
+Output: 3
+Explanation: Using two fingers, one optimal way to type "CAKE" is: 
+Finger 1 on letter 'C' -> cost = 0 
+Finger 1 on letter 'A' -> cost = Distance from letter 'C' to letter 'A' = 2 
+Finger 2 on letter 'K' -> cost = 0 
+Finger 2 on letter 'E' -> cost = Distance from letter 'K' to letter 'E' = 1 
+Total distance = 3
+
+Example 2:
+
+Input: word = "HAPPY"
+Output: 6
+Explanation: Using two fingers, one optimal way to type "HAPPY" is:
+Finger 1 on letter 'H' -> cost = 0
+Finger 1 on letter 'A' -> cost = Distance from letter 'H' to letter 'A' = 2
+Finger 2 on letter 'P' -> cost = 0
+Finger 2 on letter 'P' -> cost = Distance from letter 'P' to letter 'P' = 0
+Finger 1 on letter 'Y' -> cost = Distance from letter 'A' to letter 'Y' = 4
+Total distance = 6
+
+Intution in space optimisation:- dp[j] represents one finger at jth indx and other at the previous indx of word
+  
+Constraints:
+
+2 <= word.length <= 300
+word consists of uppercase English letters.
+
+class Solution {
+public:
+    int dist(int a, int b) {
+        if(a == 26 || b == 26) return 0;
+
+        int row1 = a/6, column1 = a%6;
+        int row2 = b/6, column2 = b%6;
+
+        return abs(row1-row2) + abs(column1-column2);
+    }
+    //Memorization
+    // int solve(int indx, int finger1, int finger2, string& word, vector<vector<vector<int>>>& dp) {
+    //     if(indx == word.size()) return 0;
+
+    //     if(dp[indx][finger1][finger2] != -1) return dp[indx][finger1][finger2];
+
+    //     int currChar = word[indx] - 'A';
+
+    //     int move1 = dist(finger1, currChar) + solve(indx+1, currChar, finger2, word, dp);
+    //     int move2 = dist(finger2, currChar) + solve(indx+1, finger1, currChar, word, dp);
+
+    //     return dp[indx][finger1][finger2] = min(move1, move2);
+    // }
+    int minimumDistance(string word) {
+        //Memorization
+        // int n = word.size();
+        // vector<vector<vector<int>>> dp(n+1, vector<vector<int>>(27, vector<int>(27, -1))); //26 -> means the finger is not been assigned to any char
+        
+        // return solve(0, 26, 26, word, dp);
+
+        //Tabulation
+        // int n = word.size();
+        // vector<vector<vector<int>>> dp(n+1, vector<vector<int>>(27, vector<int>(27, 0)));
+
+        // for(int indx = n-1; indx >= 0; indx--) {
+
+        //     for(int finger1 = 0; finger1 <= 26; finger1++) {
+
+        //         for(int finger2 = 0; finger2 <= 26; finger2++) {
+                    
+        //             int currChar = word[indx] - 'A';
+
+        //             int move1 = dist(finger1, currChar) + dp[indx+1][currChar][finger2];
+        //             int move2 = dist(finger2, currChar) + dp[indx+1][finger1][currChar];
+
+        //             dp[indx][finger1][finger2] = min(move1, move2);
+        //         }
+        //     }
+        // }
+
+        // return dp[0][26][26];
+
+        //Space optimisation
+        int n = word.size();
+        vector<int> dp(27, 0); 
+        //Represents minimum total abs distance with other finger at j
+        // The prev indx finger contributes to the total and sits at the prev indx only we are interchanging not tracking the fingers as we used to do in the above example 
+        // Here we are doing the best operations i.e min total abs dist from prevIndx finger and other free finger
+
+        for (int indx = 1; indx < n; indx++) {
+            vector<int> next(27, 1e9);
+
+            int prev = word[indx - 1] - 'A';
+            int curr = word[indx] - 'A';
+
+            for (int j = 0; j <= 26; j++) {
+                // 1️⃣ move same finger (prev → curr)
+                next[j] = min(next[j], dp[j] + dist(prev, curr));
+
+                // 2️⃣ move free finger (j → curr)
+                next[prev] = min(next[prev], dp[j] + dist(j, curr));
+            }
+
+            dp = next;
+        }
+
+        return *min_element(dp.begin(), dp.end());
+    }
+};
