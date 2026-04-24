@@ -1,0 +1,153 @@
+2615. Sum of Distances
+
+You are given a 0-indexed integer array nums. There exists an array arr of length nums.length, where arr[i] is the sum of |i - j| over all j such that nums[j] == nums[i] and j != i. If there is no such j, set arr[i] to be 0.
+
+Return the array arr.
+
+Example 1:
+
+Input: nums = [1,3,1,1,2]
+Output: [5,0,3,4,0]
+Explanation: 
+When i = 0, nums[0] == nums[2] and nums[0] == nums[3]. Therefore, arr[0] = |0 - 2| + |0 - 3| = 5. 
+When i = 1, arr[1] = 0 because there is no other index with value 3.
+When i = 2, nums[2] == nums[0] and nums[2] == nums[3]. Therefore, arr[2] = |2 - 0| + |2 - 3| = 3. 
+When i = 3, nums[3] == nums[0] and nums[3] == nums[2]. Therefore, arr[3] = |3 - 0| + |3 - 2| = 4. 
+When i = 4, arr[4] = 0 because there is no other index with value 2. 
+
+Example 2:
+
+Input: nums = [0,5,3]
+Output: [0,0,0]
+Explanation: Since each element in nums is distinct, arr[i] = 0 for all i.
+ 
+
+Constraints:
+
+1 <= nums.length <= 105
+0 <= nums[i] <= 109
+ 
+
+Note: This question is the same as 2121: Intervals Between Identical Elements.
+
+// class Solution {
+// public:
+//     vector<long long> distance(vector<int>& nums) {
+//         int n = nums.size();
+//         unordered_map<int, pair<long long, int>> hashMap; // {nums[i], {sum of indx of occurances of nums[i], indxSize of occurances of nums[i]}}
+
+//         for(int i = 0; i < n; i++) {
+//             long long sum = hashMap[nums[i]].first + i;
+//             int indxSize = hashMap[nums[i]].second + 1;
+//             hashMap[nums[i]] = {sum, indxSize};
+//         } 
+
+//         vector<long long> ans(n);
+//         for(int i = 0; i < n; i++) {
+
+//             if(hashMap.count(nums[i])) {
+//                 ans[i] = abs(hashMap[nums[i]].first - (hashMap[nums[i]].second * i));
+//             }
+//         }
+
+//         return ans;
+//     }
+// };
+
+/*
+ISSUE WITH CURRENT APPROACH:
+
+We used:
+    abs(total_sum_of_indices - count * i)
+
+This assumes:
+    sum(|i - j|) == |sum(j) - count * i|
+
+This is MATHEMATICALLY INCORRECT.
+
+Reason:
+Absolute value is NOT distributive over summation:
+    |a| + |b| != |a + b|   (in general)
+
+In this problem:
+Each term |i - j| behaves differently based on position:
+
+    if j < i  → contributes (i - j)
+    if j > i  → contributes (j - i)
+
+So actual formula is:
+    sum(|i - j|) =
+        sum_{j < i} (i - j) + sum_{j > i} (j - i)
+
+But current code effectively does:
+    | sum(j - i) |
+
+This mixes positive and negative values BEFORE applying absolute,
+which leads to incorrect cancellation.
+
+Counterexample:
+    nums = [1, 1, 1]
+    indices = [0, 1, 2]
+
+For i = 1:
+    Correct = |1-0| + |1-2| = 1 + 1 = 2
+
+    Current formula:
+        sum = 0 + 1 + 2 = 3
+        count = 3
+        |3 - 3*1| = 0  ❌ WRONG
+
+Why it fails:
+    (1 - 0) = +1
+    (1 - 2) = -1
+
+    |+1| + |-1| = 2
+    but
+    |(+1) + (-1)| = 0
+
+Conclusion:
+We cannot collapse absolute differences into a single expression.
+We MUST split into:
+    left contribution + right contribution
+
+Fix:
+Use prefix sums over grouped indices to compute:
+    left = i * pos[i] - sum(left indices)
+    right = sum(right indices) - (count_right * pos[i])
+*/                                                                        
+
+class Solution {
+public:
+    vector<long long> distance(vector<int>& nums) {
+        int n = nums.size();
+        vector<long long> ans(n);
+
+        unordered_map<int, vector<int>> mp;
+
+        for(int i = 0; i < n; i++)
+            mp[nums[i]].push_back(i);
+
+        for(auto &it : mp){
+            auto &pos = it.second;
+
+            long long sum = 0;
+            for(int x : pos) sum += x;
+
+            long long leftSum = 0;
+            int m = pos.size();
+
+            for(int i = 0; i < m; i++){
+                long long rightSum = sum - leftSum - pos[i];
+
+                long long left  = 1LL * pos[i] * i - leftSum;
+                long long right = rightSum - 1LL * pos[i] * (m-i-1);
+
+                ans[pos[i]] = left + right;
+
+                leftSum += pos[i];
+            }
+        }
+
+        return ans;
+    }
+};
